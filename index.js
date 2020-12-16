@@ -10,8 +10,11 @@ const io = require('socket.io')(server, {
     methods: ['GET', 'POST']
   }
 });
-
 const port = process.env.PORT || 3000;
+
+app.get('/', (req, res,next) => {
+  res.send('Hello');
+});
 
 io.on('connection', socket => {
   console.log('client connected');
