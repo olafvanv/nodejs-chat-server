@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const express = require('express'); 
 const app = express();
 const http = require('http')
@@ -9,6 +11,8 @@ const io = require('socket.io')(server, {
   }
 });
 
+const port = process.env.PORT || 3000;
+
 io.on('connection', socket => {
   console.log('client connected');
   socket.on('chat', (message) => {
@@ -16,6 +20,6 @@ io.on('connection', socket => {
   });
 });
 
-server.listen(3000, () => {
-  console.log('listening on: ', 3000);
+server.listen(port, () => {
+  console.log('listening on: ', port);
 });
