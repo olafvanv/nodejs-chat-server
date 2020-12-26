@@ -1,9 +1,8 @@
-require('dotenv').config();
-
-const express = require('express'); 
+const express = require('express')
 const app = express();
-const http = require('http')
-const server = http.createServer(app);
+// const path = require('path');
+
+const server = require('http').createServer(app);
 const io = require('socket.io')(server, {
   cors: {
     origin: '*',
@@ -12,15 +11,49 @@ const io = require('socket.io')(server, {
 });
 const port = process.env.PORT || 3000;
 
-app.get('/', (req, res,next) => {
-  res.send('Hello');
+// app.use(express.static( path.join(__dirname, '/app')))
+app.get('/', function (req, res) {
+  res.send('<h1>Socket IO project</h1>');
 });
 
+const players = [];
+let current_player = 0;
+let started = false;
+
 io.on('connection', socket => {
-  console.log('client connected');
-  socket.on('chat', (message) => {
-    io.emit('chat', {message, id: socket.id});
+  if (started) return;
+
+  players.push(socket);
+  socket.join("game");
+
+  io.in("game").emit('player-joined', players.length);
+
+  socket.on('disconnect', () => {
+    const i = players.indexOf(socket);
+    players.splice(i, 1);
+    io.in("game").emit('player-left', players.length);
+    if (!players.length) started = false;
   });
+
+  socket.on('start-game', () => {
+    started = true;
+    io.in("game").emit('start-game', {});
+    players[0].emit('your-turn', {});
+  });
+
+  socket.on('dice-throw', (d) => {
+    socket.to("game").emit("dice-throw", d);
+  });
+
+  socket.on('end-turn', () => {
+    current_player = current_player === (players.length - 1) ? 0 : ++current_player;
+    players[current_player].emit('your-turn', {});
+  });
+
+  socket.on('end-game', () => {
+    started = false;
+  });
+
 });
 
 server.listen(port, () => {
