@@ -17,6 +17,7 @@ app.get('/', function (req, res) {
 });
 
 const players = [];
+let totals = [];
 let current_player = 0;
 let started = false;
 
@@ -33,10 +34,12 @@ io.on('connection', socket => {
     players.splice(i, 1);
     io.in("game").emit('player-left', players.length);
     if (!players.length) started = false;
+    if (totals.length) totals.splice(i, 1);
   });
 
   socket.on('start-game', () => {
     started = true;
+    players.forEach(p => totals.push(null));
     io.in("game").emit('start-game', {});
     players[0].emit('your-turn', {});
   });
@@ -50,8 +53,31 @@ io.on('connection', socket => {
     players[current_player].emit('your-turn', {});
   });
 
-  socket.on('end-game', () => {
-    started = false;
+  socket.on('end-game', (points) => {
+    const i = players.indexOf(socket);
+    totals[i] = points;
+
+    // Check if all players have submitted their end scores
+    // Returns true when a players still is playing
+    if (totals.some(t => t === null)) {
+      current_player = current_player === (players.length - 1) ? 0 : ++current_player;
+      players[current_player].emit('your-turn', {});
+    }
+    // All players have submitted an end score, game ends
+    else {
+      const iHighestScore = totals.indexOf(Math.max(...totals));
+      players.forEach(p => {
+        console.log(p.id);
+        if (p === players[iHighestScore]) { 
+          p.emit('end-game', { winner: true, totals: totals })
+        }
+        else { 
+          p.emit('end-game', { winner: false, totals: totals }) 
+        }
+      });
+      totals = [];
+      started = false;
+    }
   });
 
 });
