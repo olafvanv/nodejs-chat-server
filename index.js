@@ -67,7 +67,6 @@ io.on('connection', socket => {
     else {
       const iHighestScore = totals.indexOf(Math.max(...totals));
       players.forEach(p => {
-        console.log(p.id);
         if (p === players[iHighestScore]) { 
           p.emit('end-game', { winner: true, totals: totals })
         }
